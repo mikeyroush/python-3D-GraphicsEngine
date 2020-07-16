@@ -8,8 +8,8 @@ def matrixMult(pos,matProj):
 		for k in range(len(pos)):
 			posProj[j] += pos[k] * matProj[k][j]
 	if not posProj[3] == 0:
-		posProj = tuple(map(lambda i:i/posProj[3],posProj[:3]))
-	return tuple(posProj[:3])
+		posProj = tuple(map(lambda i:i/posProj[3],posProj))
+	return tuple(posProj)
 	
 
 class vec3d:
@@ -56,7 +56,6 @@ class cuboid(ShapeNode):
 		
 		#add triangles to mesh
 		self.mesh = mesh(triangles)
-		self.meshObjects = []
 		
 		#calculate values for projection matrix
 		near = .1
@@ -72,6 +71,7 @@ class cuboid(ShapeNode):
 		self.matProj[2][2] = far / (far - near)
 		self.matProj[3][2] = (-far * near) / (far - near)
 		self.matProj[2][3] = 1
+		self.matRotX = None
 		self.draw()
 		
 	def drawTriangles(self,triangles):
@@ -84,14 +84,18 @@ class cuboid(ShapeNode):
 			path.line_to(verts[2].x,verts[2].y)
 		path.close()
 		self.path = path
+		self.fill_color = 'clear'
 	
 	def draw(self):
 		triangles = []
 		for i, tri in enumerate(self.mesh.triangles):
 			positions = []
 			for vert in tri.vertices:
-				vert.pos = (vert.pos[0],vert.pos[1],vert.pos[2]+3,vert.pos[3])
-				posProj = matrixMult(vert.pos,self.matProj)
+				posProj = vert.pos
+				if self.matRotX:
+					posProj = matrixMult(vert.pos,self.matRotX)
+				posProj = (posProj[0],posProj[1],posProj[2]+3,posProj[3])
+				posProj = matrixMult(posProj,self.matProj)
 				vecProj = vec3d(posProj)
 				vecProj.x += 1
 				vecProj.y += 1
@@ -107,6 +111,25 @@ class engineGUI(Scene):
 		self.cube = cuboid(stroke_color='white',parent=self,position=(self.size.w/2,self.size.h/2))
 		self.counter = 0
 		self.theta = 1
+		
+		#rotation matrices
+		self.matRotX = [[0 for _ in range(4)] for _ in range(4)]
+		
+	def update(self):
+		self.counter += 1
+		
+		if self.counter % 2 == 0:
+			self.theta += .1
+			
+			self.matRotX[0][0] = 1
+			self.matRotX[1][1] = cos(self.theta/2)
+			self.matRotX[1][2] = sin(self.theta/2)
+			self.matRotX[2][1] = -sin(self.theta/2)
+			self.matRotX[2][2] = cos(self.theta/2)
+			self.matRotX[3][3] = 1
+			self.cube.matRotX = self.matRotX
+			
+			self.cube.draw()
 	
 #Main
 run(engineGUI())
