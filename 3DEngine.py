@@ -72,13 +72,20 @@ class cuboid(ShapeNode):
 		self.matProj[3][2] = (-far * near) / (far - near)
 		self.matProj[2][3] = 1
 		self.matRotX = None
+		self.matRotZ = None
 		self.draw()
 		
 	def drawTriangles(self,triangles):
 		path = ui.Path()
+		#ensure object doesn't move
+		path.move_to(0,0)
+		path.line_to(self.parent.size.w,0)
+		path.line_to(self.parent.size.w,self.parent.size.h)
+		
+		#draw triangles
 		for tri in triangles:
 			verts = tri.vertices
-			path.line_width = 1
+			path.line_width = 2
 			path.move_to(verts[0].x,verts[0].y)
 			path.line_to(verts[1].x,verts[1].y)
 			path.line_to(verts[2].x,verts[2].y)
@@ -92,8 +99,10 @@ class cuboid(ShapeNode):
 			positions = []
 			for vert in tri.vertices:
 				posProj = vert.pos
+				if self.matRotZ:
+					posProj = matrixMult(posProj,self.matRotZ)
 				if self.matRotX:
-					posProj = matrixMult(vert.pos,self.matRotX)
+					posProj = matrixMult(posProj,self.matRotX)
 				posProj = (posProj[0],posProj[1],posProj[2]+3,posProj[3])
 				posProj = matrixMult(posProj,self.matProj)
 				vecProj = vec3d(posProj)
@@ -114,12 +123,13 @@ class engineGUI(Scene):
 		
 		#rotation matrices
 		self.matRotX = [[0 for _ in range(4)] for _ in range(4)]
+		self.matRotZ = [[0 for _ in range(4)] for _ in range(4)]
 		
 	def update(self):
 		self.counter += 1
 		
-		if self.counter % 2 == 0:
-			self.theta += .1
+		if self.counter % 1 == 0:
+			self.theta += .03
 			
 			self.matRotX[0][0] = 1
 			self.matRotX[1][1] = cos(self.theta/2)
@@ -128,6 +138,14 @@ class engineGUI(Scene):
 			self.matRotX[2][2] = cos(self.theta/2)
 			self.matRotX[3][3] = 1
 			self.cube.matRotX = self.matRotX
+			
+			self.matRotZ[0][0] = cos(self.theta)
+			self.matRotZ[0][1] = sin(self.theta)
+			self.matRotZ[1][0] = -sin(self.theta)
+			self.matRotZ[1][1] = cos(self.theta)
+			self.matRotZ[2][2] = 1
+			self.matRotZ[3][3] = 1
+			self.cube.matRotZ = self.matRotZ
 			
 			self.cube.draw()
 	
